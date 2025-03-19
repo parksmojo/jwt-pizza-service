@@ -1,3 +1,4 @@
+const { time } = require("console");
 const config = require("./config.js");
 const os = require("os");
 
@@ -46,6 +47,23 @@ function getMemoryUsagePercentage() {
   const usedMemory = totalMemory - freeMemory;
   const memoryUsage = (usedMemory / totalMemory) * 100;
   return memoryUsage.toFixed(2);
+}
+
+let currLatency = 0;
+function latencyMiddleware(req, res, next) {
+  const start = Date.now();
+  res.on("finish", () => {
+    currLatency = Date.now() - start;
+  });
+  next();
+}
+let currPizzaLatency = 0;
+function pizzaLatencyMiddleware(req, res, next) {
+  const start = Date.now();
+  res.on("finish", () => {
+    currPizzaLatency = Date.now() - start;
+  });
+  next();
 }
 
 async function sendMetricsToGrafana() {
@@ -150,6 +168,40 @@ async function sendMetricsToGrafana() {
     },
   });
 
+  // Latency
+  metrics.resourceMetrics[0].scopeMetrics[0].metrics.push({
+    name: "latency",
+    unit: "1",
+    sum: {
+      dataPoints: [
+        {
+          asInt: currLatency,
+          timeUnixNano: Date.now() * 1000000,
+          attributes: [{ key: "source", value: { stringValue: config.metrics.source } }],
+        },
+      ],
+      aggregationTemporality: "AGGREGATION_TEMPORALITY_CUMULATIVE",
+      isMonotonic: false,
+    },
+  });
+
+  // Pizza latency
+  metrics.resourceMetrics[0].scopeMetrics[0].metrics.push({
+    name: "pizza_latency",
+    unit: "1",
+    sum: {
+      dataPoints: [
+        {
+          asInt: currPizzaLatency,
+          timeUnixNano: Date.now() * 1000000,
+          attributes: [{ key: "source", value: { stringValue: config.metrics.source } }],
+        },
+      ],
+      aggregationTemporality: "AGGREGATION_TEMPORALITY_CUMULATIVE",
+      isMonotonic: false,
+    },
+  });
+
   try {
     const res = await fetch(`${config.metrics.url}`, {
       method: "POST",
@@ -173,4 +225,6 @@ module.exports = {
   addActiveUser,
   removeActiveUser,
   trackAuthRequest,
+  latencyMiddleware,
+  pizzaLatencyMiddleware,
 };
