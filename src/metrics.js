@@ -1,4 +1,3 @@
-const { time } = require('console');
 const config = require('./config.js');
 const os = require('os');
 
@@ -274,7 +273,7 @@ async function sendMetricsToGrafana() {
   }
 }
 
-const timer = setInterval(async () => await sendMetricsToGrafana(), 10000);
+setInterval(async () => await sendMetricsToGrafana(), 10000);
 
 module.exports = {
   requestTracker,
