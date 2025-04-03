@@ -265,8 +265,6 @@ async function sendMetricsToGrafana() {
     });
     if (!res.ok) {
       console.error('Failed to push metrics data to Grafana', res.status, await res.text());
-    } else {
-      console.log(`Pushed metrics`);
     }
   } catch (error) {
     console.error('Error pushing metrics:', error);
